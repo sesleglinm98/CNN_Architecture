@@ -1,0 +1,200 @@
+#include <stdio.h>
+
+// Bu kodda convolution layer fonksiyonuna bias değeri ve 3 kanallı image için convolution yapılacaktır.
+// 3 kanallı convoltion için önce tek tek R-G-B kanalları için farklı kernel filtreleri ile input arasında convolution yapılır daha sonra 3 tane 2 boyutlu matrix elde edilir.
+// Bu 3 matrix birbiriyle toplanır ve tek bir çıktı bulunur. En sonda ise bu tek çıktıya tek bir bias değeri toplanır ve output bulunur. Bias değeri tek bir sayı değeridir,
+// vektör veya matrix değildir.
+// convolution fonksiyonuna input olarak kanal sayısı girilmelidir (RGB için veya önceki convdan çıkan kanal sayısı), filtreye_size a da yeni bir parametre alınmalıdır (filtre sayısı), 
+// output olarakda 3. boyut eklenmeli (filtre sayısı kadar).
+// Bu işlemleri yapmak için yeni fonksiyon açılabilir conv_upg olarak.
+
+
+void conv_upg (int input_channel, int size_input, int input[size_input][size_input][input_channel], int filtre_channel, int size_filtre, int filtre[size_filtre][size_filtre][filtre_channel * input_channel], int stride, int pad, int output[(size_input + (pad*2) - size_filtre) / stride + 1][(size_input + (pad*2)- size_filtre) / stride +1][filtre_channel]){
+	int a, b;
+	int y,x,i,j;
+	int count_filter = 0;
+	int output_temp = 0;
+	int padded_size = size_input + (pad*2);
+	int padded_input[padded_size][padded_size][input_channel];
+	padding_upg(input_channel, size_input, input, pad, padded_input);
+	
+	for(b = 0; b < filtre_channel; b++){
+		for(a = 0; a < input_channel; a++){
+	int temp = 0;
+	for (y=0; y < padded_size - size_filtre +1 ; y++){         		
+		for (x=0; x< padded_size - size_filtre +1 ;x++){   		
+			for (i=0; i<size_filtre; i++){    								   
+				for (j=0; j<size_filtre; j++){ 							
+					temp += filtre[i][j][count_filter] * padded_input[i+(y * stride)][j+(x * stride)][a];				
+				}
+			} 		
+		//printf(" outputa atanan deger : %d \n", output[y][x][a]);
+		}
+	}
+		output_temp += temp;
+		count_filter++;
+		temp = 0;
+	   
+}
+		output[y][x][b] = output_temp;
+		output_temp = 0;
+}
+}
+
+
+
+void padding_upg(int channel, int size, int input[size][size][channel], int pad, int out[size+(pad*2)][size+(pad*2)][channel]){
+	int x, y, a;
+	int pad_yeni = pad;
+	int count = 0;
+	if (pad == 0){
+		for (a=0 ; a<channel; a++){
+		for (x=0 ; x<size; x++){
+			for (y=0 ; y<size; y++){
+				out[x][y][a] = input[x][y][a];
+			}
+		}
+	}
+}
+	else {
+		for(a = 0; a<channel; a++){
+			while(pad_yeni > 0){
+	for(x=count ; x < (size+(pad_yeni*2)+count); x++){
+		out[count][x][a] = 0;
+		out[x][count][a] = 0;
+		out[size+(pad_yeni*2)-1+count][x][a] = 0;
+		out[x][size+(pad_yeni*2)-1+count][a] = 0;
+	}
+	pad_yeni = pad_yeni -1 ;
+	count++;
+}
+
+	for(x=pad ; x<size+(pad*2)-pad ; x++){
+		for(y=pad ; y<size+(pad*2)-pad ; y++){
+			out[x][y][a] = input[x-pad][y-pad][a];
+		}		
+	}
+	
+	for (x=0 ; x<size+(pad*2); x++){
+			for (y=0 ; y<size+(pad*2); y++){
+			printf(" p[%d][%d][%d] = %d ",x+1,y+1,a+1,out[x][y][a]);
+			}
+			printf("\n");
+		}
+	}	
+}
+}
+
+
+
+
+void convolution2d (int size_input, int input[size_input][size_input], int size_filtre, int filtre[size_filtre][size_filtre],int stride, int pad, int output[(size_input + (pad*2) - size_filtre) / stride + 1][(size_input + (pad*2)- size_filtre) / stride +1]){             
+	int y,x,i,j;
+	int padded_size = size_input + (pad*2);
+	int padded_input[padded_size][padded_size];
+	padding(size_input, input, pad, padded_input);
+	int temp = 0;
+	for (y=0; y < padded_size - size_filtre +1 ; y++){         					    // burası input sütunları için döner
+		for (x=0; x< padded_size - size_filtre +1 ;x++){   						   // burası input satırları için döner
+			for (i=0; i<size_filtre; i++){    								   	  // burası filtre sütunları için döner
+				for (j=0; j<size_filtre; j++){ 									 // burası filtre satırları için döner
+					temp += filtre[i][j] * padded_input[i+(y * stride)][j+(x * stride)];				
+				}
+			} 
+		output[y][x] = temp;
+		printf(" outputa atanan deger : %d \n", output[y][x]);
+		temp = 0;
+		}
+	}
+}
+
+
+void padding (int size, int input[size][size], int pad, int out[size+(pad*2)][size+(pad*2)]){
+	int x, y;
+	int pad_yeni = pad;
+	int count = 0;
+	if (pad == 0){
+		for (x=0 ; x<size; x++){
+			for (y=0 ; y<size; y++){
+				out[x][y] = input[x][y];
+			}
+		}
+	}
+	else {
+	while(pad_yeni > 0){
+	for(x=count ; x < (size+(pad_yeni*2)+count); x++){
+		out[count][x] = 0;
+		out[x][count] = 0;
+		out[size+(pad_yeni*2)-1+count][x] = 0;
+		out[x][size+(pad_yeni*2)-1+count] = 0;
+	}
+	pad_yeni = pad_yeni -1 ;
+	count++;
+}
+
+	for(x=pad ; x<size+(pad*2)-pad ; x++){
+		for(y=pad ; y<size+(pad*2)-pad ; y++){
+			out[x][y] = input[x-pad][y-pad];
+		}		
+	}
+	
+	for (x=0 ; x<size+(pad*2); x++){
+			for (y=0 ; y<size+(pad*2); y++){
+			printf(" p[%d][%d] = %d ",x+1,y+1,out[x][y]);
+			}
+			printf("\n");
+		}
+	}
+}
+
+
+int main(){
+int size_im = 3;
+int size_fil = 2;
+int pad = 0;
+int stride = 1;
+int inp_channel = 3;
+int fil_channel =4 ;
+
+printf("5\n");
+int l, m;
+
+int out[(size_im + (pad*2) - size_fil) / stride + 1][(size_im + (pad*2) - size_fil) / stride + 1];
+
+int padout[7][7];
+int size = 5;
+
+int image[5][5] = {{2, 3, 5, 7, 11}, {12, 8, 4, 6, 1}, {9, 7, 5, 0, 13}, {1, 3, 2, 6, 5}, {4, 6, 8, 8, 1}};
+
+int image_3d[3][3][3] = {
+						{{2, 3, 5}, {12, 8, 4}, {9, 7, 5}},
+						{{1, 3, 2}, {6, 5, 8}, {4, 6, 8}},
+					 	{{7, 5, 1}, {8, 9, 0}, {4, 3, 2}}
+					};
+
+int kernel_4d[2][2][4] = {
+						 {{1, 4}, {2, 6}},
+						 {{5, 9}, {8,2}},
+						 {{4, 3}, {3, 1}},
+						 {{9, 8}, {0, 3}}
+						 };
+						 
+kernel2_4d 	
+
+
+int output_3d[(size_im + (pad*2) - size_fil) / stride + 1][(size_im + (pad*2) - size_fil) / stride + 1][4];
+
+conv_upg(inp_channel, size_im, image_3d, fil_channel, size_fil, kernel_4d,  )
+        
+int kernel[3][3] = {{1, 3, 5}, {2, 7, 6}, {9, 3, 1}};
+
+convolution2d(size_im, image, size_fil, kernel, stride, pad, out);
+ 
+for (l=0; l<(size_im + (pad*2) - size_fil) / stride + 1; l++){
+		for (m=0; m<(size_im + (pad*2) - size_fil) / stride + 1; m++){
+			printf(" padout[%d][%d] = %d ",l,m,out[l][m]);
+		}
+			printf("\n");
+	}
+
+}
